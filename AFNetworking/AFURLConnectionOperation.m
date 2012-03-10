@@ -129,6 +129,7 @@ static inline BOOL AFStateTransitionIsValid(AFOperationState fromState, AFOperat
 @synthesize lock = _lock;
 @synthesize dataReceived = _dataReceived;
 @synthesize responseReceived = _responseReceived;
+@synthesize finalURL = _finalURL;
 
 + (void)networkRequestThreadEntryPoint:(id)__unused object {
     do {
@@ -536,6 +537,20 @@ didReceiveResponse:(NSURLResponse *)response
         
         return cachedResponse; 
     }
+}
+
+- (NSURLRequest *)connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)inRequest redirectResponse:(NSURLResponse *)inRedirectResponse {
+    NSURLRequest *retVal = nil;
+    if (inRedirectResponse) {
+        NSMutableURLRequest *r = [[self.request mutableCopy] autorelease]; // original request
+        [r setURL: [inRequest URL]];
+        retVal = r;
+    } else {
+        retVal = inRequest;
+    }
+    
+    _finalURL = [retVal URL];
+    return retVal;
 }
 
 @end

@@ -122,6 +122,11 @@ extern NSString * const AFNetworkingOperationDidFinishNotification;
  */
 @property (readonly, nonatomic, retain) NSError *error;
 
+/**
+ The final URL accessed in the request, including all redirections.
+ */
+@property (readonly, nonatomic, retain) NSURL *finalURL;
+
 ///----------------------------
 /// @name Getting Response Data
 ///----------------------------
