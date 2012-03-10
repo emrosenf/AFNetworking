@@ -229,4 +229,11 @@ extern NSString * const AFNetworkingOperationDidFinishNotification;
  */
 - (void) setDataReceivedBlock:(void (^)(NSData *data))block;
 
+
+/**
+ Sets a block to be executed to when a response is received, as handled by the `NSURLConnectionDelegate` method `connection:didReceiveResponse:`.
+ 
+ @param block A block object to be executed when the connection receives a response object. The block has no return type and takes one argument: the NSURLResponse object.
+ */
+- (void) setResponseReceivedBlock:(void (^)(NSURLResponse *response))block;
 @end

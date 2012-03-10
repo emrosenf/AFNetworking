@@ -40,6 +40,7 @@ NSString * const AFNetworkingErrorDomain = @"com.alamofire.networking.error";
 NSString * const AFNetworkingOperationDidStartNotification = @"com.alamofire.networking.operation.start";
 NSString * const AFNetworkingOperationDidFinishNotification = @"com.alamofire.networking.operation.finish";
 
+typedef void (^AFURLConnectionOperationResponseBlock)(NSURLResponse *response);
 typedef void (^AFURLConnectionOperationDataReceivedBlock)(NSData *data);
 typedef void (^AFURLConnectionOperationProgressBlock)(NSInteger bytes, NSInteger totalBytes, NSInteger totalBytesExpected);
 typedef BOOL (^AFURLConnectionOperationAuthenticationAgainstProtectionSpaceBlock)(NSURLConnection *connection, NSURLProtectionSpace *protectionSpace);
@@ -101,6 +102,7 @@ static inline BOOL AFStateTransitionIsValid(AFOperationState fromState, AFOperat
 @property (readwrite, nonatomic, copy) AFURLConnectionOperationAuthenticationChallengeBlock authenticationChallenge;
 @property (readwrite, nonatomic, copy) AFURLConnectionOperationCacheResponseBlock cacheResponse;
 @property (readwrite, nonatomic, copy) AFURLConnectionOperationDataReceivedBlock dataReceived;
+@property (readwrite, nonatomic, copy) AFURLConnectionOperationResponseBlock responseReceived;
 
 - (void)operationDidStart;
 - (void)finish;
@@ -126,6 +128,7 @@ static inline BOOL AFStateTransitionIsValid(AFOperationState fromState, AFOperat
 @synthesize cacheResponse = _cacheResponse;
 @synthesize lock = _lock;
 @synthesize dataReceived = _dataReceived;
+@synthesize responseReceived = _responseReceived;
 
 + (void)networkRequestThreadEntryPoint:(id)__unused object {
     do {
@@ -199,6 +202,7 @@ static inline BOOL AFStateTransitionIsValid(AFOperationState fromState, AFOperat
     [_authenticationAgainstProtectionSpace release];
     [_cacheResponse release];
     [_dataReceived release];
+    [_responseReceived release];
     
     [_connection release];
     
@@ -255,6 +259,10 @@ static inline BOOL AFStateTransitionIsValid(AFOperationState fromState, AFOperat
 
 - (void) setDataReceivedBlock:(void (^)(NSData *data))block {
     self.dataReceived = block;
+}
+
+- (void) setResponseReceivedBlock:(void (^)(NSURLResponse *response))block; {
+    self.responseReceived = block;
 }
 
 - (void)setState:(AFOperationState)state {
@@ -449,6 +457,9 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite
 didReceiveResponse:(NSURLResponse *)response 
 {
     self.response = (NSHTTPURLResponse *)response;
+    if (self.responseReceived) {
+        self.responseReceived(response);
+    }
     
     if (!self.dataReceived) {        
         if (self.outputStream) {
