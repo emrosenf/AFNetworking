@@ -76,6 +76,9 @@ extern NSString * const AFNetworkingOperationDidFinishNotification;
  @warning Attempting to load a `file://` URL in iOS 4 may result in an `NSInvalidArgumentException`, caused by the connection returning `NSURLResponse` rather than `NSHTTPURLResponse`, which is the behavior as of iOS 5.
  */
 @interface AFURLConnectionOperation : NSOperation {
+@protected
+    NSURLRequest *_request;
+    
 @private
     unsigned short _state;
     BOOL _cancelled;
@@ -84,7 +87,6 @@ extern NSString * const AFNetworkingOperationDidFinishNotification;
     NSSet *_runLoopModes;
     
     NSURLConnection *_connection;
-    NSURLRequest *_request;
     NSHTTPURLResponse *_response;
     NSError *_error;
 

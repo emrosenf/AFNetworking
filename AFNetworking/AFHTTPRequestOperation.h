@@ -33,7 +33,12 @@
     NSError *_HTTPError;
     dispatch_queue_t _successCallbackQueue;
     dispatch_queue_t _failureCallbackQueue;
+    unsigned long long startingFileSize;
 }
+
+
+@property (nonatomic, retain) NSString *temporaryFilePath;
+@property (nonatomic, assign) BOOL resumable;
 
 ///----------------------------------------------
 /// @name Getting HTTP URL Connection Information

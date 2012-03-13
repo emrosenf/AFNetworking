@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#define AF_RESUMABLE_PLIST_PATH [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"AFResumableTransfers.plist"]
+
 #import "AFHTTPRequestOperation.h"
 
 static NSString * AFStringFromIndexSet(NSIndexSet *indexSet) {
@@ -64,7 +66,8 @@ static NSString * AFStringFromIndexSet(NSIndexSet *indexSet) {
 @synthesize HTTPError = _HTTPError;
 @synthesize successCallbackQueue = _successCallbackQueue;
 @synthesize failureCallbackQueue = _failureCallbackQueue;
-
+@synthesize temporaryFilePath = _temporaryFilePath;
+@synthesize resumable = _resumable;
 
 - (id)initWithRequest:(NSURLRequest *)request {
     self = [super initWithRequest:request];
@@ -93,6 +96,58 @@ static NSString * AFStringFromIndexSet(NSIndexSet *indexSet) {
     }
     
     [super dealloc];
+}
+
+- (void)setTemporaryFilePath:(NSString *)temporaryFilePath {
+    if (temporaryFilePath == _temporaryFilePath) return;
+    if (self.outputStream) {
+        [self.outputStream close];
+    }
+    _temporaryFilePath = temporaryFilePath;
+    startingFileSize = 0;
+    NSFileManager *fm = [[NSFileManager alloc] init];
+    NSDictionary *dict = [fm attributesOfItemAtPath:temporaryFilePath error:NULL];
+    [fm release];
+    if (dict) {
+        startingFileSize = [[dict objectForKey:NSFileSize] unsignedLongLongValue];
+    }
+    BOOL append = NO;
+    if (startingFileSize > 0) {
+        append = YES;
+        NSMutableURLRequest *request = [[self.request mutableCopy] autorelease];
+        NSString *range = @"bytes=";
+        range = [range stringByAppendingFormat:@"%llu", startingFileSize];
+        range = [range stringByAppendingString:@"-"];
+        [request setValue:range forHTTPHeaderField:@"Range"];
+        NSDictionary *plist = [NSDictionary dictionaryWithContentsOfFile:AF_RESUMABLE_PLIST_PATH];
+        NSString *ETag = [plist objectForKey:[NSString stringWithFormat:@"%lu", [request.URL hash]]];
+                         
+        if (ETag) {
+            [request setValue:ETag forHTTPHeaderField:@"ETag"];
+        }
+        [_request release]; _request = nil;
+        _request = [request retain];
+    }
+    self.outputStream = [NSOutputStream outputStreamToFileAtPath:_temporaryFilePath append:append];
+
+}
+
+- (void)connection:(NSURLConnection *) connection 
+didReceiveResponse:(NSURLResponse *)response 
+{
+    [super connection:connection didReceiveResponse:response];
+    if (_temporaryFilePath) {
+        NSDictionary *dict = [(NSHTTPURLResponse*)response allHeaderFields];
+        NSString *eTag = [dict objectForKey:@"ETag"];
+        if (eTag) {
+            NSUInteger hash = [[response URL] hash];
+            NSMutableDictionary *plist = [NSMutableDictionary dictionaryWithContentsOfFile:AF_RESUMABLE_PLIST_PATH];
+            if (!plist) plist = [NSMutableDictionary dictionary];
+            [plist setObject:eTag forKey:[NSString stringWithFormat:@"%lu", hash]];
+            [plist writeToFile:AF_RESUMABLE_PLIST_PATH atomically:YES];
+        }
+    }
+    
 }
 
 - (NSHTTPURLResponse *)response {
