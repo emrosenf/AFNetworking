@@ -33,7 +33,6 @@
     NSError *_HTTPError;
     dispatch_queue_t _successCallbackQueue;
     dispatch_queue_t _failureCallbackQueue;
-    unsigned long long startingFileSize;
 }
 
 

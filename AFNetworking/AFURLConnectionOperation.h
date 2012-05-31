@@ -78,6 +78,7 @@ extern NSString * const AFNetworkingOperationDidFinishNotification;
 @interface AFURLConnectionOperation : NSOperation {
 @protected
     NSURLRequest *_request;
+    unsigned long long startingFileSize;
     
 @private
     unsigned short _state;
